@@ -38,7 +38,7 @@ The library is designed to be **extensible**, **efficient**, and **easy to use**
 ### Using CMake
 1. Navigate to the project directory:
    ```bash
-   cd pipeline-1
+   cd pipeline
    ```
 2. Create a build directory:
    ```bash
@@ -66,7 +66,7 @@ make
 ### Using CMake
 1. Navigate to the project directory:
    ```bash
-   cd pipeline-1
+   cd pipeline
    ```
 2. Create a build directory:
    ```bash
