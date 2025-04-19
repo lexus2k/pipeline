@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cmake_build",
+            "type": "shell",
+            "command": "mkdir -p build && cd build && cmake -DBUILD_EXAMPLES=ON -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug .. && cmake --build .",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "detail": "Builds the project using CMake."
+        },
+        {
+            "label": "run_tests",
+            "type": "shell",
+            "command": "./unittests/test_pipeline",
+            "group": "test",
+            "dependsOn": "cmake_build",
+            "problemMatcher": [],
+            "detail": "Runs the unit tests after building the project."
+        },
+        {
+            "label": "make_build",
+            "type": "shell",
+            "command": "make BUILD_TESTS=y BUILD_EXAMPLES=y all",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "Builds the project using Make."
+        }
+    ]
+}
