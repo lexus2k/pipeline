@@ -144,17 +144,17 @@ int main() {
     auto pipeline = std::make_shared<Pipeline>();
 
     // Create a producer node
-    auto& producer = pipeline->addNode<LambdaNode>([](std::shared_ptr<IPacket> packet, IPad* pad) {
+    auto& producer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
         std::cout << "Producer generated a packet" << std::endl;
-        pad->getParent()->pad<SimplePad>("output").pushPacket(packet, 0);
+        (*pad.getParent())["output"].pushPacket(packet, 0);
     });
-    producer.addPad<SimplePad>("output");
+    producer.addOutput("output");
 
     // Create a consumer node
-    auto& consumer = pipeline->addNode<LambdaNode>([](std::shared_ptr<IPacket> packet, IPad* pad) {
+    auto& consumer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
         std::cout << "Consumer processed a packet" << std::endl;
     });
-    consumer.addPad<SimplePad>("input");
+    consumer.addInput("input");
 
     // Connect the producer to the consumer
     pipeline->connect(producer["output"], consumer["input"]);
@@ -186,17 +186,17 @@ int main() {
     auto pipeline = std::make_shared<Pipeline>();
 
     // Create a producer node
-    auto& producer = pipeline->addNode<LambdaNode>([](std::shared_ptr<IPacket> packet, IPad* pad) {
+    auto& producer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
         std::cout << "Producer generated a packet" << std::endl;
-        pad->getParent()->pad<QueuePad>("output").pushPacket(packet, 0);
+        (*pad.getParent())["output"].pushPacket(packet, 0);
     });
-    producer.addPad<QueuePad>("output");
+    producer.addOutput("output");
 
     // Create a consumer node
-    auto& consumer = pipeline->addNode<LambdaNode>([](std::shared_ptr<IPacket> packet, IPad* pad) {
+    auto& consumer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
         std::cout << "Consumer processed a packet" << std::endl;
     });
-    consumer.addPad<SimplePad>("input");
+    consumer.addInput("input");
 
     // Connect the producer to the consumer
     pipeline->connect(producer["output"], consumer["input"]);
