@@ -78,7 +78,7 @@ namespace lexus2k::pipeline
          * @brief Gets the parent node of the pad.
          * @return A pointer to the parent node.
          */
-        inline INode* getParent() const noexcept { return m_parentNode; }
+        inline INode& node() const noexcept { return *m_parentNode; }
 
         /**
          * @brief Gets the type of the pad.

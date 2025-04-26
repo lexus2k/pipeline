@@ -24,14 +24,14 @@ TEST_F(PipelineTest, BasicUsage)
 {
     bool consumed = false;
 
-    auto &producer = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto &producer = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Packet processed by processor" << std::endl;
-        (*pad.getParent())["output"].pushPacket(packet, 0);
+        pad.node()["output"].pushPacket(packet, 0);
     });
     producer.addInput("input");
     producer.addOutput("output");
 
-    auto &consumer = *pipeline->addNode([&consumed](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto &consumer = *pipeline->addNode([&consumed](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         consumed = true;
         std::cout << "Packet processed by consumer" << std::endl;
     });
@@ -49,23 +49,26 @@ TEST_F(PipelineTest, BasicUsage)
 TEST_F(PipelineTest, ConnectTestUsingThen)
 {
     bool consumed = false;
-    auto &producer = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto &producer = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Packet processed by producer" << std::endl;
-        (*pad.getParent())["output"].pushPacket(packet, 0);
+        pad.node()["output"].pushPacket(packet, 0);
+        return true;
     });
     producer.addInput("input");
     producer.addOutput("output");
 
-    auto &processor = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto &processor = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Packet processed by processor" << std::endl;
-        (*pad.getParent())["output"].pushPacket(packet, 0);
+        pad.node()["output"].pushPacket(packet, 0);
+        return true;
     });
     processor.addInput<QueuePad>("input");
     processor.addOutput("output");
 
-    auto &consumer = *pipeline->addNode([&consumed](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto &consumer = *pipeline->addNode([&consumed](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         consumed = true;
         std::cout << "Packet processed by consumer" << std::endl;
+        return true;
     });
     consumer.addInput("input");
 
@@ -89,7 +92,8 @@ TEST_F(PipelineTest, TeeNodeTest) {
 
     auto &producer = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) {
         std::cout << "Packet processed by producer" << std::endl;
-        (*pad.getParent())["output"].pushPacket(packet, 0);
+        pad.node()["output"].pushPacket(packet, 0);
+        return true;
     });
     producer.addInput("input");
     producer.addOutput("output");
@@ -99,12 +103,14 @@ TEST_F(PipelineTest, TeeNodeTest) {
     auto &consumer1 = *pipeline->addNode([&consumed1](std::shared_ptr<IPacket> packet, IPad& pad) {
         consumed1 = true;
         std::cout << "Packet processed by consumer1" << std::endl;
+        return true;
     });
     consumer1.addInput("input");
 
     auto &consumer2 = *pipeline->addNode([&consumed2](std::shared_ptr<IPacket> packet, IPad& pad) {
         consumed2 = true;
         std::cout << "Packet processed by consumer2" << std::endl;
+        return true;
     });
     consumer2.addInput("input");
 

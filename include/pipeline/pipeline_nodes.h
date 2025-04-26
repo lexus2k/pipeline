@@ -28,9 +28,9 @@ namespace lexus2k::pipeline
          * @param packet The packet to process.
          * @param inputPad The input pad that received the packet.
          */
-        void processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override
+        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override
         {
-            m_func(packet, inputPad);
+            return m_func(packet, inputPad);
         }
 
     private:
@@ -47,13 +47,12 @@ namespace lexus2k::pipeline
         /**
          * @brief Default constructor.
          */
-        explicit ISplitter() : INode() {
-        }
+        explicit ISplitter() : INode() {};
 
         /**
          * @brief Default destructor.
          */
-        ~ISplitter() = default;
+        virtual ~ISplitter() = default;
 
     protected:
         /**
@@ -61,7 +60,7 @@ namespace lexus2k::pipeline
          * @param packet The packet to process.
          * @param inputPad The input pad that received the packet.
          */
-        void processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override;
+        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override;
     };
 
     template<size_t N, typename InputPad, typename... Args>
@@ -74,6 +73,11 @@ namespace lexus2k::pipeline
                 addOutput("output_" + std::to_string(i));
             }
         }
+
+        /**
+         * @brief Default destructor.
+         */
+        ~Splitter() = default;
     };
 
 } // namespace lexus2k::pipeline

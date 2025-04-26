@@ -6,6 +6,7 @@ project(pipeline)
 
 option(BUILD_TESTS "Build the tests" ON)
 option(BUILD_EXAMPLES "Build the examples" OFF)
+option(BUILD_WITH_RTTI "Build with RTTI" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,6 +19,12 @@ add_library(pipeline
     src/pipeline_node.cpp
     src/pipeline_nodes.cpp
 )
+
+if (BUILD_WITH_RTTI)
+    target_compile_options(pipeline PRIVATE -frtti)
+else()
+    target_compile_options(pipeline PRIVATE -fno-rtti)
+endif()
 
 # Include directories
 target_include_directories(pipeline PUBLIC include)

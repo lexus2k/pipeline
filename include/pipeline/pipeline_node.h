@@ -145,8 +145,9 @@ namespace lexus2k::pipeline
          * @brief Processes a packet received on an input pad.
          * @param packet The packet to process.
          * @param inputPad The input pad that received the packet.
+         * @return True if the packet was successfully processed, false otherwise.
          */
-        virtual void processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept {};
+        virtual bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept { return false; }
 
         // Helper method to find a pad by name
         IPad* getPadByName(const std::string& name, PadType type = PadType::UNDEFINED) const noexcept;
@@ -215,14 +216,15 @@ namespace lexus2k::pipeline
          * @param packet The packet to process, as a shared pointer to `IPacket`.
          * @param inputPad The input pad that received the packet.
          */
-        void processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override final
+        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override final
         {
             // TODO: Make 2 implementations with RTTI support and without
             auto derivedPacket = std::dynamic_pointer_cast<T>(packet);
             if (derivedPacket)
             {
-                processPacket(derivedPacket, inputPad);
+                return processPacket(derivedPacket, inputPad);
             }
+            return false; // Packet type mismatch
         }
 
         /**
@@ -234,7 +236,7 @@ namespace lexus2k::pipeline
          * @param packet The packet to process, as a shared pointer to `T`.
          * @param inputPad The input pad that received the packet.
          */
-        virtual void processPacket(std::shared_ptr<T> packet, IPad& inputPad) noexcept = 0;
+        virtual bool processPacket(std::shared_ptr<T> packet, IPad& inputPad) noexcept = 0;
     };
 
     /**
@@ -286,13 +288,13 @@ namespace lexus2k::pipeline
          * @param packet The packet to process, as a shared pointer to `IPacket`.
          * @param inputPad The input pad that received the packet.
          */
-        void processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override final
+        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override final
         {
             if (inputPad.getIndex() == 0) {
                 auto derivedPacket = std::dynamic_pointer_cast<T1>(packet);
                 if (derivedPacket)
                 {
-                    processPacket(derivedPacket, inputPad);
+                    return processPacket(derivedPacket, inputPad);
                 }
             }
             else if (inputPad.getIndex() == 1)
@@ -300,9 +302,10 @@ namespace lexus2k::pipeline
                 auto derivedPacket = std::dynamic_pointer_cast<T2>(packet);
                 if (derivedPacket)
                 {
-                    processPacket(derivedPacket, inputPad);
+                    return processPacket(derivedPacket, inputPad);
                 }
             }
+            return false; // Packet type mismatch
         }
 
         /**
@@ -314,7 +317,7 @@ namespace lexus2k::pipeline
          * @param packet The packet to process, as a shared pointer to `T1`.
          * @param inputPad The input pad that received the packet.
          */
-        virtual void processPacket(std::shared_ptr<T1> packet, IPad& inputPad) noexcept = 0;
+        virtual bool processPacket(std::shared_ptr<T1> packet, IPad& inputPad) noexcept = 0;
 
         /**
          * @brief Processes a packet of the second type (`T2`).
@@ -325,7 +328,7 @@ namespace lexus2k::pipeline
          * @param packet The packet to process, as a shared pointer to `T2`.
          * @param inputPad The input pad that received the packet.
          */
-        virtual void processPacket(std::shared_ptr<T2> packet, IPad& inputPad) noexcept = 0;
+        virtual bool processPacket(std::shared_ptr<T2> packet, IPad& inputPad) noexcept = 0;
     };
 } // namespace lexus2k::pipeline
 

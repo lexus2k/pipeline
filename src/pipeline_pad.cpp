@@ -28,17 +28,11 @@ namespace lexus2k::pipeline
             pad.m_padType = PadType::INPUT;
         }
         m_linkedPad = &pad;
-        return *(pad.getParent());
+        return pad.node();
     }
 
     bool IPad::processPacket(std::shared_ptr<IPacket> packet, uint32_t timeout) noexcept
     {
-        auto node = getParent();
-        if (node == nullptr)
-        {
-            return false; // Pad has no node
-        }
-        node->processPacket(packet, *this); // Pass reference instead of pointer
-        return true; // Packet pushed successfully
+        return (node()).processPacket(packet, *this); // Pass reference instead of pointer
     }
 }

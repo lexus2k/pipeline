@@ -3,8 +3,9 @@
 
 namespace lexus2k::pipeline
 {
-    void ISplitter::processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept
+    bool ISplitter::processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept
     {
+        bool result = true;
         // Process the packet and send it to all output pads
         for(size_t index = 0;; index++) {
             auto pad = getPadByIndex(index);
@@ -12,8 +13,9 @@ namespace lexus2k::pipeline
                 break; // No more pads
             }
             if (pad->getType() == PadType::OUTPUT) {
-                pad->pushPacket(packet, 0);
+                result = pad->pushPacket(packet, 0) && result;
             }
         }
+        return result;
     }
 }

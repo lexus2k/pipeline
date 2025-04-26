@@ -17,9 +17,10 @@ public:
 // Define a custom Node class for testing
 class TestNode : public Node<PacketA> {
 protected:
-    void processPacket(const std::shared_ptr<PacketA> packet, IPad& inputPad) noexcept override {
+    bool processPacket(const std::shared_ptr<PacketA> packet, IPad& inputPad) noexcept override {
         std::cout << "Processing PacketA in TestNode" << std::endl;
         processed = true;
+        return true;
     }
 
 public:
@@ -29,14 +30,16 @@ public:
 // Define a custom Node2 class for testing
 class TestNode2 : public Node2<PacketA, PacketB> {
 protected:
-    void processPacket(std::shared_ptr<PacketA> packet, IPad& inputPad) noexcept override {
+    bool processPacket(std::shared_ptr<PacketA> packet, IPad& inputPad) noexcept override {
         std::cout << "Processing PacketA in TestNode2" << std::endl;
         processedA = true;
+        return true;
     }
 
-    void processPacket(std::shared_ptr<PacketB> packet, IPad& inputPad) noexcept override {
+    bool processPacket(std::shared_ptr<PacketB> packet, IPad& inputPad) noexcept override {
         std::cout << "Processing PacketB in TestNode2" << std::endl;
         processedB = true;
+        return true;
     }
 
 public:
