@@ -144,15 +144,17 @@ int main() {
     auto pipeline = std::make_shared<Pipeline>();
 
     // Create a producer node
-    auto& producer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto& producer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Producer generated a packet" << std::endl;
-        (*pad.getParent())["output"].pushPacket(packet, 0);
+        pad.node()["output"].pushPacket(packet, 0);
+        return true;
     });
     producer.addOutput("output");
 
     // Create a consumer node
-    auto& consumer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto& consumer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Consumer processed a packet" << std::endl;
+        return true;
     });
     consumer.addInput("input");
 
@@ -186,15 +188,17 @@ int main() {
     auto pipeline = std::make_shared<Pipeline>();
 
     // Create a producer node
-    auto& producer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto& producer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Producer generated a packet" << std::endl;
-        (*pad.getParent())["output"].pushPacket(packet, 0);
+        pad.node()["output"].pushPacket(packet, 0);
+        return true;
     });
     producer.addOutput("output");
 
     // Create a consumer node
-    auto& consumer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) {
+    auto& consumer = *pipeline->addNode<ILambdaNode>([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Consumer processed a packet" << std::endl;
+        return true;
     });
     consumer.addInput("input");
 
