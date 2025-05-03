@@ -7,26 +7,24 @@ namespace lexus2k::pipeline
         stop();
     }
 
-    void Pipeline::start() noexcept
+    bool Pipeline::start() noexcept
     {
-        for (auto & node : m_nodes)
+        for (auto node = m_nodes.begin(); node != m_nodes.end(); node++)
         {
-            node->_start();
+            if (!node->get()->_start()) {
+                for (;node != m_nodes.begin();) {
+                    node--;
+                    node->get()->_stop();
+                }
+                return false;
+            }
         }
-        for (auto & node : m_nodes)
-        {
-            node->start();
-        }
+        return true;
     }
 
     void Pipeline::stop() noexcept
     {
         for (auto& node: m_nodes)
-        {
-            node->stop();
-        }
-        
-        for (auto & node : m_nodes)
         {
             node->_stop();
         }

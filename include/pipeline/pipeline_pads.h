@@ -93,7 +93,7 @@ namespace lexus2k::pipeline
          * This method overrides the `start` method in the `IPad` base class.
          * It starts a background thread that processes packets from the queue.
          */
-        void start() noexcept override;
+        bool start() noexcept override;
 
         /**
          * @brief Stops the queue processing thread.

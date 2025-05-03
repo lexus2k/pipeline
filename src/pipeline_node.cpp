@@ -2,12 +2,19 @@
 
 namespace lexus2k::pipeline
 {
-    void INode::_start() noexcept
+    bool INode::_start() noexcept
     {
         for (auto it = m_pads.begin(); it != m_pads.end(); ++it)
         {
-            it->second->start();
+            if (!it->second->start()) {
+                for (;it != m_pads.begin();) {
+                    it--;
+                    it->second->stop();
+                }
+                return false;
+            }
         }
+        return true;
     }
 
     void INode::_stop() noexcept

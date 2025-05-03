@@ -77,7 +77,7 @@ namespace lexus2k::pipeline
         /**
          * @brief Starts all nodes in the pipeline.
          */
-        void start() noexcept;
+        bool start() noexcept;
 
         /**
          * @brief Stops all nodes in the pipeline.

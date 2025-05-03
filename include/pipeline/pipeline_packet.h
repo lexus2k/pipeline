@@ -20,6 +20,10 @@ namespace lexus2k::pipeline
          * a pointer to `IPacket`.
          */
         virtual ~IPacket() = default;
+
+        virtual bool serializeTo(void *ptr, size_t max_size) noexcept { return false; }
+
+        virtual bool deserializeFrom(const void *ptr, size_t size) noexcept { return false; }
     };
 
 } // namespace lexus2k::pipeline

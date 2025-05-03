@@ -66,7 +66,7 @@ TEST_F(TemplateNodeTest, SingleTypeNodeTest) {
     auto& testNode = *pipeline->addNode<TestNode>();
     testNode.addInput("input");
 
-    pipeline->start();
+    EXPECT_TRUE(pipeline->start());
 
     // Push a PacketA to the node
     testNode["input"].pushPacket(std::make_shared<PacketA>(), 0);
@@ -80,7 +80,7 @@ TEST_F(TemplateNodeTest, DualTypeNodeTest) {
     testNode2.addInput("input_0");
     testNode2.addInput("input_1");
 
-    pipeline->start();
+    EXPECT_TRUE(pipeline->start());
 
     // Push a PacketA to input_0
     testNode2["input_0"].pushPacket(std::make_shared<PacketA>(), 0);
@@ -98,7 +98,7 @@ TEST_F(TemplateNodeTest, InvalidPacketTypeTest) {
     testNode2.addInput("input_0");
     testNode2.addInput("input_1");
 
-    pipeline->start();
+    EXPECT_TRUE(pipeline->start());
 
     // Push an invalid packet type (not PacketA or PacketB)
     class InvalidPacket : public IPacket {

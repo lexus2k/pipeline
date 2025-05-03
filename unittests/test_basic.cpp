@@ -27,6 +27,7 @@ TEST_F(PipelineTest, BasicUsage)
     auto &producer = *pipeline->addNode([](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         std::cout << "Packet processed by processor" << std::endl;
         pad.node()["output"].pushPacket(packet, 0);
+        return true;
     });
     producer.addInput("input");
     producer.addOutput("output");
@@ -34,12 +35,13 @@ TEST_F(PipelineTest, BasicUsage)
     auto &consumer = *pipeline->addNode([&consumed](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
         consumed = true;
         std::cout << "Packet processed by consumer" << std::endl;
+        return true;
     });
     consumer.addInput("input");
 
     pipeline->connect(producer["output"], consumer["input"]);
 
-    pipeline->start();
+    EXPECT_TRUE(pipeline->start());
 
     producer["input"].pushPacket(std::make_shared<IPacket>(), 0);
 
@@ -78,7 +80,7 @@ TEST_F(PipelineTest, ConnectTestUsingThen)
         .then(processor["input"])["output"]
         .then(consumer["input"]);
 
-    pipeline->start();
+    EXPECT_TRUE(pipeline->start());
 
     producer["input"].pushPacket(std::make_shared<IPacket>(), 0);
 
@@ -118,7 +120,7 @@ TEST_F(PipelineTest, TeeNodeTest) {
     pipeline->connect(tee["output_1"], consumer1["input"]);
     pipeline->connect(tee["output_2"], consumer2["input"]);
 
-    pipeline->start();
+    EXPECT_TRUE(pipeline->start());
 
     producer["input"].pushPacket(std::make_shared<IPacket>(), 0);
 

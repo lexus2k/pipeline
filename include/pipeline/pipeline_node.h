@@ -117,13 +117,15 @@ namespace lexus2k::pipeline
          * by derived classes to perform any initialization or setup required before
          * the node begins processing packets. For example, a node might open files,
          * initialize resources, or start background threads in this method.
+         * 
+         * It guarantees that if any pad start fails, node will not be started.
          *
          * By default, this method does nothing.
          *
          * @note This method is invoked automatically by the pipeline when the
          *       `Pipeline::start()` method is called.
          */
-        virtual void start() noexcept {};
+        virtual bool start() noexcept { return true; }
 
         /**
          * @brief Stops the node.
@@ -155,9 +157,11 @@ namespace lexus2k::pipeline
         IPad* getPadByIndex(size_t index) const noexcept;
 
         /**
-         * @brief Starts the node.
+         * @brief Starts the node. It guarantees that if any pad start fails,
+         *        node will not be started
+         * 
          */
-        void _start() noexcept;
+        bool _start() noexcept;
 
         /**
          * @brief Stops the node.

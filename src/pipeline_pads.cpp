@@ -37,11 +37,11 @@ namespace lexus2k::pipeline
         return true;
     }
 
-    void QueuePad::start() noexcept
+    bool QueuePad::start() noexcept
     {
         if (m_isRunning.load(std::memory_order_relaxed) || m_thread.joinable())
         {
-            return; // Already running
+            return true; // Already running
         }
 
         m_isRunning.store(true, std::memory_order_relaxed);
@@ -75,6 +75,7 @@ namespace lexus2k::pipeline
                 processPacket(packet.second, packet.first);
             }
         });
+        return true;
     }
 
     void QueuePad::stop() noexcept

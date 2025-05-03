@@ -22,11 +22,13 @@ public:
         m_outputPadIndex = addOutput("output").getIndex();
     }
 
-    void start() noexcept override {
+    bool start() noexcept override {
         m_file.open(m_filePath);
         if (!m_file.is_open()) {
             std::cerr << "Error opening file: " << m_filePath << std::endl;
+            return false;
         }
+        return true;
     }
 
     void stop() noexcept override {

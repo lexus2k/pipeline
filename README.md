@@ -20,6 +20,7 @@ The library is designed to be **extensible**, **efficient**, and **easy to use**
 - **Type-Safe Processing**: Leverage C++ templates to ensure type safety for data packets.
 - **Real-Time Processing**: Support for real-time data pipelines with minimal latency.
 - **Unit Testing Support**: Includes unit tests using Google Test for easy validation.
+- **Dynamic Pipeline Reconfiguration**: Allows on-the-fly adjustments to the pipeline structure to adapt to changing application needs.
 
 ---
 

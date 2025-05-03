@@ -104,12 +104,21 @@ namespace lexus2k::pipeline
         INode& then(IPad& pad) noexcept;
 
         /**
+         * @brief Disconnects this pad from the connected pad.
+         * 
+         * This method is used to disconnect the pad from its connected pad.
+         * It is typically called when the pipeline is stopped or when the
+         * connection is no longer needed.
+         */
+        void then() noexcept;
+
+        /**
          * @brief Starts the pad.
          *
          * This method can be overridden by derived classes to implement
          * specific startup behavior for the pad.
          */
-        virtual void start() noexcept {}
+        virtual bool start() noexcept { return true; }
 
         /**
          * @brief Stops the pad.
@@ -143,13 +152,8 @@ namespace lexus2k::pipeline
          */
         bool processPacket(std::shared_ptr<IPacket> packet, uint32_t timeout) noexcept;
 
-        /**
-         * @brief Sets the type of the pad.
-         * @param type The type to set (`INPUT`, `OUTPUT`, or `UNDEFINED`).
-         */
-        inline void setType(PadType type) noexcept { m_padType = type; }
-
     private:
+        std::mutex m_mutex; ///< Mutex for thread safety.
         INode* m_parentNode = nullptr; ///< Pointer to the parent node of the pad.
         IPad* m_linkedPad = nullptr;   ///< Pointer to the connected pad.
         PadType m_padType = PadType::INPUT; ///< The type of the pad.
@@ -166,6 +170,12 @@ namespace lexus2k::pipeline
          * @param index The index to set.
          */
         inline void setIndex(size_t index) noexcept { m_padIndex = index; }
+
+        /**
+         * @brief Sets the type of the pad.
+         * @param type The type to set (`INPUT`, `OUTPUT`, or `UNDEFINED`).
+         */
+        inline void setType(PadType type) noexcept { m_padType = type; }
 
         friend class INode;
     };
