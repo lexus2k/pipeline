@@ -14,11 +14,16 @@ namespace lexus2k::pipeline
                 return false;
             }
         }
+        if (!start()) {
+            _stop();
+            return false;
+        }
         return true;
     }
 
     void INode::_stop() noexcept
     {
+        stop();
         for (auto it = m_pads.begin(); it != m_pads.end(); ++it)
         {
             it->second->stop();

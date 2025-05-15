@@ -59,7 +59,7 @@ public:
     }
 
 protected:
-    bool processPacket(std::shared_ptr<DataPacket> packet, IPad& inputPad) noexcept override {
+    bool processPacket(std::shared_ptr<DataPacket> packet, IPad& inputPad, uint32_t timeoutMs) noexcept override {
         auto data = packet->getData();
         std::reverse(data.begin(), data.end());
         auto new_packet = std::make_shared<DataPacket>(data);
@@ -78,7 +78,7 @@ public:
     }
 
 protected:
-    bool processPacket(std::shared_ptr<DataPacket> packet, IPad& inputPad) noexcept override {
+    bool processPacket(std::shared_ptr<DataPacket> packet, IPad& inputPad, uint32_t timeoutMs) noexcept override {
         std::cout << packet->getData() << std::endl;
         return true;
     }

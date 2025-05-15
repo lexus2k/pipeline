@@ -44,6 +44,6 @@ namespace lexus2k::pipeline
 
     bool IPad::processPacket(std::shared_ptr<IPacket> packet, uint32_t timeout) noexcept
     {
-        return (node()).processPacket(packet, *this); // Pass reference instead of pointer
+        return (node()).processPacket(packet, *this, timeout); // Pass reference instead of pointer
     }
 }

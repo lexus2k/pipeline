@@ -15,6 +15,7 @@
 #include "pipeline_pads.h"
 #include "pipeline_node.h"
 #include "pipeline_nodes.h"
+#include "pipeline_sharedmem_node.h"
 
 namespace lexus2k::pipeline
 {

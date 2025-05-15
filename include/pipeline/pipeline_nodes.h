@@ -28,7 +28,7 @@ namespace lexus2k::pipeline
          * @param packet The packet to process.
          * @param inputPad The input pad that received the packet.
          */
-        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override
+        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad, uint32_t timeoutMs) noexcept override
         {
             return m_func(packet, inputPad);
         }
@@ -59,8 +59,10 @@ namespace lexus2k::pipeline
          * @brief Processes a packet and forwards it to all output pads.
          * @param packet The packet to process.
          * @param inputPad The input pad that received the packet.
+         * @param timeoutMs The timeout for the operation.
+         * @return True if the packet was successfully processed, false otherwise.
          */
-        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad) noexcept override;
+        bool processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad, uint32_t timeoutMs) noexcept override;
     };
 
     template<size_t N, typename InputPad, typename... Args>

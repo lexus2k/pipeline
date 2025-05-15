@@ -8,6 +8,30 @@ using namespace lexus2k::pipeline;
 // Define custom packet types for testing
 class PacketA : public IPacket {
 public:
+    PacketA() : data(0) {}
+    PacketA(int value) : data(value) {}
+
+    size_t serializeTo(void* ptr, size_t maxSize) noexcept override {
+        if (maxSize < sizeof(int)) {
+            return -1; // Not enough space
+        }
+        *(int *)ptr = data;
+        return sizeof(int);
+    }
+
+    size_t deserializeFrom(const void* ptr, size_t size) noexcept override {
+        if (size < sizeof(int)) {
+            return -1;
+        }
+        data = *(int *)ptr;
+        return sizeof(int);
+    }
+
+    int getData() const {
+        return data;
+    }
+private:
+    int data; // Example data member
 };
 
 class PacketB : public IPacket {
@@ -17,7 +41,7 @@ public:
 // Define a custom Node class for testing
 class TestNode : public Node<PacketA> {
 protected:
-    bool processPacket(const std::shared_ptr<PacketA> packet, IPad& inputPad) noexcept override {
+    bool processPacket(const std::shared_ptr<PacketA> packet, IPad& inputPad, uint32_t timeoutMs) noexcept override {
         std::cout << "Processing PacketA in TestNode" << std::endl;
         processed = true;
         return true;
@@ -30,13 +54,13 @@ public:
 // Define a custom Node2 class for testing
 class TestNode2 : public Node2<PacketA, PacketB> {
 protected:
-    bool processPacket(std::shared_ptr<PacketA> packet, IPad& inputPad) noexcept override {
+    bool processPacket(std::shared_ptr<PacketA> packet, IPad& inputPad, uint32_t timeoutMs) noexcept override {
         std::cout << "Processing PacketA in TestNode2" << std::endl;
         processedA = true;
         return true;
     }
 
-    bool processPacket(std::shared_ptr<PacketB> packet, IPad& inputPad) noexcept override {
+    bool processPacket(std::shared_ptr<PacketB> packet, IPad& inputPad, uint32_t timeoutMs) noexcept override {
         std::cout << "Processing PacketB in TestNode2" << std::endl;
         processedB = true;
         return true;
@@ -111,4 +135,40 @@ TEST_F(TemplateNodeTest, InvalidPacketTypeTest) {
     // Ensure no processing occurred
     EXPECT_FALSE(testNode2.processedA);
     EXPECT_FALSE(testNode2.processedB);
+}
+
+TEST_F(TemplateNodeTest, SharedMemoryNodeTest) {
+    auto publisher = pipeline;
+    auto& publisherNode = *publisher->addNode<SharedPublisherNode>("shared");
+    auto &input = publisherNode.addChannel("channel1");
+
+    auto subscriber = std::make_shared<Pipeline>();
+    auto& subscriberNode = *subscriber->addNode<SharedSubscriberNodeT<PacketA>>("shared");
+    subscriberNode.addOutput("channel1");
+
+    uint32_t consumedSum = 0;
+    auto &consumer = *pipeline->addNode([&consumedSum](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
+        auto packetA = std::dynamic_pointer_cast<PacketA>(packet);
+        if (!packetA) {
+            std::cerr << "Invalid packet type" << std::endl;
+            return false;
+        }
+        consumedSum += packetA->getData();
+        std::cout << "Packet processed by consumer" << std::endl;
+        return true;
+    });
+    consumer.addInput("input");
+
+    // Connect nodes using pad template method,
+    pipeline->connect(subscriberNode["channel1"], consumer["input"]);
+
+    subscriber->start();
+    publisher->start();
+    for (int i = 5; i < 20; ++i) {
+        auto packet = std::make_shared<PacketA>(i);
+        std::cout << "Pushing packet with data: " << i << std::endl;
+        input.pushPacket(packet, 200);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    EXPECT_EQ(consumedSum, 4950); // Sum of numbers from 5 to 99
 }

@@ -18,6 +18,7 @@ add_library(pipeline
     src/pipeline_pads.cpp
     src/pipeline_node.cpp
     src/pipeline_nodes.cpp
+    src/pipeline_sharedmem_node.cpp
 )
 
 if (BUILD_WITH_RTTI)

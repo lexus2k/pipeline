@@ -21,9 +21,9 @@ namespace lexus2k::pipeline
          */
         virtual ~IPacket() = default;
 
-        virtual bool serializeTo(void *ptr, size_t max_size) noexcept { return false; }
+        virtual size_t serializeTo(void *ptr, size_t max_size) noexcept { return -1; }
 
-        virtual bool deserializeFrom(const void *ptr, size_t size) noexcept { return false; }
+        virtual size_t deserializeFrom(const void *ptr, size_t size) noexcept { return -1; }
     };
 
 } // namespace lexus2k::pipeline
