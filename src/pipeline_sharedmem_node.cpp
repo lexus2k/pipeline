@@ -121,6 +121,7 @@ bool SharedPublisherNode::createSharedMem() noexcept
     ptr->queue.count = 0;
     ptr->queue.head = 0;
     ptr->queue.tail = 0;
+    ptr->queue.packets = (PacketHeader *)((uint8_t *)m_ptr + sizeof(SharedMemoryHeader));
     ptr->writeOffset = sizeof(SharedMemoryHeader) + sizeof(PacketHeader) * m_maxQueueSize;
 
     ptr->is_valid = true;

@@ -10,6 +10,7 @@ option(BUILD_WITH_RTTI "Build with RTTI" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-Wall -Werror -Wpedantic)
 
 # Add the pipeline library
 add_library(pipeline

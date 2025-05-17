@@ -21,7 +21,7 @@ namespace lexus2k::pipeline
         uint32_t count; ///< Number of packets in the queue.
         uint32_t head; ///< Head index of the queue.
         uint32_t tail; ///< Tail index of the queue.
-        PacketHeader packets[0]; ///< Offsets of the packets in the queue.
+        PacketHeader *packets; ///< Offsets of the packets in the queue.
     };
 
     struct SharedMemoryHeader
