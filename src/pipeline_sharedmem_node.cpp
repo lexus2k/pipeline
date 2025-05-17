@@ -20,6 +20,21 @@
 namespace lexus2k::pipeline
 {
 
+static bool InitializeSharedConditionVariable(pthread_cond_t& cond) noexcept
+{
+    pthread_condattr_t cattr;
+    if (pthread_condattr_init(&cattr) != 0) {
+        return false;
+    }
+    pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
+    if (pthread_cond_init(&cond, &cattr) != 0) {
+        pthread_condattr_destroy(&cattr);
+        return false;
+    }
+    pthread_condattr_destroy(&cattr);
+    return true;
+}
+
 SharedPublisherNode::SharedPublisherNode(const std::string name, size_t size, uint32_t maxQueueSize)
     : INode()
     , m_name(name)
@@ -60,7 +75,7 @@ bool SharedPublisherNode::createSharedMem() noexcept
     m_ptr = mmap(0, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
     if (m_ptr == MAP_FAILED) {
-        std::cerr << "[PUB] Failed to map shared memory: " << m_name << std::endl;
+        // std::cerr << "[PUB] Failed to map shared memory: " << m_name << std::endl;
         shm_unlink(m_name.c_str());
         return false;
     }
@@ -83,52 +98,23 @@ bool SharedPublisherNode::createSharedMem() noexcept
     pthread_mutexattr_destroy(&mattr);
 
     // Initialize the shared memory condition variable for packet ready
-    {
-        pthread_condattr_t cattr;
-        if (pthread_condattr_init(&cattr) != 0) {
-            pthread_mutex_destroy(&ptr->mutex);
-            munmap(m_ptr, m_size);
-            m_ptr = nullptr;
-            shm_unlink(m_name.c_str());
-            std::cerr << "[PUB] Failed to initialize condition variable attribute." << std::endl;
-            return false;
-        }
-        pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-        if (pthread_cond_init(&ptr->condPacketReady, &cattr) != 0) {
-            pthread_mutex_destroy(&ptr->mutex);
-            munmap(m_ptr, m_size);
-            m_ptr = nullptr;
-            shm_unlink(m_name.c_str());
-            std::cerr << "[PUB] Failed to initialize condition variable." << std::endl;
-            return false;
-        }
-        pthread_condattr_destroy(&cattr);
+    if (!InitializeSharedConditionVariable(ptr->condPacketReady)) {
+        pthread_mutex_destroy(&ptr->mutex);
+        munmap(m_ptr, m_size);
+        m_ptr = nullptr;
+        shm_unlink(m_name.c_str());
+        // std::cerr << "[PUB] Failed to initialize condition variable." << std::endl;
+        return false;
     }
-
     // Initialize the shared memory condition variable for slot available
-    {
-        pthread_condattr_t cattr;
-        if (pthread_condattr_init(&cattr) != 0) {
-            pthread_cond_destroy(&ptr->condPacketReady);
-            pthread_mutex_destroy(&ptr->mutex);
-            munmap(m_ptr, m_size);
-            m_ptr = nullptr;
-            shm_unlink(m_name.c_str());
-            std::cerr << "[PUB] Failed to initialize condition variable." << std::endl;
-            return false;
-        }
-        pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-        if (pthread_cond_init(&ptr->condSlotAvailable, &cattr) != 0) {
-            pthread_cond_destroy(&ptr->condPacketReady);
-            pthread_mutex_destroy(&ptr->mutex);
-            munmap(m_ptr, m_size);
-            m_ptr = nullptr;
-            shm_unlink(m_name.c_str());
-            throw std::runtime_error("Failed to initialize condition variable");
-            std::cerr << "[PUB] Failed to initialize condition variable. 2" << std::endl;
-            return false;
-        }
-        pthread_condattr_destroy(&cattr);
+    if (!InitializeSharedConditionVariable(ptr->condSlotAvailable)) {
+        pthread_cond_destroy(&ptr->condPacketReady);
+        pthread_mutex_destroy(&ptr->mutex);
+        munmap(m_ptr, m_size);
+        m_ptr = nullptr;
+        shm_unlink(m_name.c_str());
+        // std::cerr << "[PUB] Failed to initialize condition variable. 1" << std::endl;
+        return false;
     }
 
     ptr->queue.size = m_maxQueueSize;
@@ -138,13 +124,13 @@ bool SharedPublisherNode::createSharedMem() noexcept
     ptr->writeOffset = sizeof(SharedMemoryHeader) + sizeof(PacketHeader) * m_maxQueueSize;
 
     ptr->is_valid = true;
-    std::cout << "[PUB] Shared memory created: " << m_name << std::endl;
+    // std::cout << "[PUB] Shared memory created: " << m_name << std::endl;
     return true;
 }
 
 void SharedPublisherNode::destroySharedMem() noexcept
 {
-    std::cout << "[PUB] Destroying shared memory..." << std::endl;
+    // std::cout << "[PUB] Destroying shared memory..." << std::endl;
     if (m_ptr != nullptr) {
         pthread_mutex_lock(&PTR(m_ptr)->mutex);
         PTR(m_ptr)->is_valid = false;
@@ -158,7 +144,7 @@ void SharedPublisherNode::destroySharedMem() noexcept
         m_ptr = nullptr;
     }
     shm_unlink(m_name.c_str());
-    std::cout << "[PUB] Shared memory unlinked: " << m_name << std::endl;
+    // std::cout << "[PUB] Shared memory unlinked: " << m_name << std::endl;
 }
 
 bool SharedPublisherNode::processPacket(std::shared_ptr<IPacket> packet, IPad& inputPad, uint32_t timeoutMs) noexcept
@@ -166,18 +152,19 @@ bool SharedPublisherNode::processPacket(std::shared_ptr<IPacket> packet, IPad& i
     if (m_ptr == nullptr) {
         return false;
     }
-    pthread_mutex_lock(&PTR(m_ptr)->mutex);
+    auto ptr = PTR(m_ptr);
+    pthread_mutex_lock(&ptr->mutex);
     if (!waitForFreeSlot(timeoutMs)) {
-        pthread_mutex_unlock(&PTR(m_ptr)->mutex);
+        pthread_mutex_unlock(&ptr->mutex);
         return false;
     }
     auto result = serializeToSharedMem(packet, inputPad);
     if (result) {
-        pthread_cond_signal(&PTR(m_ptr)->condPacketReady);
+        pthread_cond_signal(&ptr->condPacketReady);
     } else {
-        std::cout << "[PUB] Failed to serialize packet." << std::endl;
+        // std::cout << "[PUB] Failed to serialize packet." << std::endl;
     }
-    pthread_mutex_unlock(&PTR(m_ptr)->mutex);
+    pthread_mutex_unlock(&ptr->mutex);
     return result;
 }
 
@@ -191,16 +178,16 @@ bool SharedPublisherNode::waitForFreeSlot(uint32_t timeoutMs) noexcept
     while (ptr->queue.size == ptr->queue.count) {
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
-        ts.tv_sec += 0;
         ts.tv_nsec += timeoutMs * 1000000;
+        ts.tv_sec += ts.tv_nsec / 1000000000;
+        ts.tv_nsec = ts.tv_nsec % 1000000000;
         int result = pthread_cond_timedwait(&ptr->condSlotAvailable, &ptr->mutex, &ts);
         if (result == ETIMEDOUT) {
-            std::cerr << "[PUB] Timed out waiting for condition variable." << std::endl;
+            // std::cerr << "[PUB] Timed out waiting for condition variable." << std::endl;
             return false;
         }
         else if (result == EINVAL) {
-            std::cerr << "[PUB] Invalid condition variable." << std::endl;
-            throw std::runtime_error("Invalid condition variable");
+            // std::cerr << "[PUB] Invalid condition variable." << std::endl;
             return false;
         }
     }
@@ -226,9 +213,9 @@ bool SharedPublisherNode::serializeToSharedMem(std::shared_ptr<IPacket> packet, 
         if (ptr->writeOffset >= m_size) {
             ptr->writeOffset = sizeof(SharedMemoryHeader) + sizeof(PacketHeader) * m_maxQueueSize;
         }
-        std::cout << "[PUB] Packet serialized successfully. notifying" << std::endl;
+        // std::cout << "[PUB] Packet serialized successfully. notifying" << std::endl;
     } else {
-        std::cout << "[PUB] Failed to serialize packet." << std::endl;
+        // std::cout << "[PUB] Failed to serialize packet." << std::endl;
         return false;
     }
     return true;
@@ -259,7 +246,7 @@ bool SharedSubscriberNode::start() noexcept
 void SharedSubscriberNode::stop() noexcept
 {
     if (m_thread.joinable()) {
-        std::cout << "[SUB] Stopping thread..." << std::endl;
+        // std::cout << "[SUB] Stopping thread..." << std::endl;
         m_stop_thread.store(true);
         m_thread.join();
     }
@@ -280,12 +267,12 @@ void SharedSubscriberNode::threadBody() noexcept
             if (result == EOWNERDEAD) {
                 // pthread_mutex_consistent(&ptr->mutex);
                 pthread_mutex_unlock(&ptr->mutex);
-                std::cerr << "[SUB] Mutex owner is dead." << std::endl;
-                // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                // std::cerr << "[SUB] Mutex owner is dead." << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 detachSharedMem();
                 continue;
             } else if (result != 0) {
-                std::cerr << "[SUB] Failed to lock mutex." << std::endl;
+                // std::cerr << "[SUB] Failed to lock mutex." << std::endl;
                 detachSharedMem();
                 continue;
             }
@@ -293,11 +280,11 @@ void SharedSubscriberNode::threadBody() noexcept
         if (auto result = waitForPacket(100)) {
             pthread_mutex_unlock(&ptr->mutex);
             if (result == EINVAL) {
-                std::cerr << "[SUB] Invalid condition variable." << std::endl;
+                // std::cerr << "[SUB] Invalid condition variable." << std::endl;
                 detachSharedMem();
                 continue;
             } else {
-                std::cerr << "[SUB] Timed out waiting for condition variable." << std::endl;
+                // std::cerr << "[SUB] Timed out waiting for condition variable." << std::endl;
             }
             continue;
         }
@@ -318,14 +305,15 @@ int SharedSubscriberNode::waitForPacket(uint32_t timeoutMs) noexcept
     }
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
-    ts.tv_sec += 0;
     ts.tv_nsec += timeoutMs * 1000000;
+    ts.tv_sec += ts.tv_nsec / 1000000000;
+    ts.tv_nsec = ts.tv_nsec % 1000000000;
     int result = pthread_cond_timedwait(&PTR(m_ptr)->condPacketReady, &PTR(m_ptr)->mutex, &ts);
     if (result == ETIMEDOUT) {
-        std::cout << "[SUB] Timed out waiting for condition variable." << std::endl;
+        // std::cout << "[SUB] Timed out waiting for condition variable." << std::endl;
     }
     else if (result == EINVAL) {
-        std::cerr << "[SUB] Invalid condition variable." << std::endl;
+        // std::cerr << "[SUB] Invalid condition variable." << std::endl;
     }
     return result;
 }
@@ -363,12 +351,12 @@ bool SharedSubscriberNode::attachSharedMem() noexcept
     }
     fd = shm_open(m_name.c_str(), O_RDWR, 0666);
     if (fd < 0) {
-        std::cerr << "[SUB] Failed to open shared memory: " << m_name << std::endl;
+        // std::cerr << "[SUB] Failed to open shared memory: " << m_name << std::endl;
         return false;
     }
     struct stat _stat;
     if (fstat(fd, &_stat) == -1) {
-        std::cerr << "[SUB] Failed to get file status: " << m_name << std::endl;
+        // std::cerr << "[SUB] Failed to get file status: " << m_name << std::endl;
         close(fd);
         return false;
     }
@@ -376,28 +364,28 @@ bool SharedSubscriberNode::attachSharedMem() noexcept
     m_ptr = mmap(0, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
     if (m_ptr == MAP_FAILED) {
-        std::cerr << "[SUB] Failed to map shared memory: " << m_name << std::endl;
+        // std::cerr << "[SUB] Failed to map shared memory: " << m_name << std::endl;
         return false;
     }
     if (PTR(m_ptr)->is_valid.load() == false) {
-        std::cerr << "[SUB] Shared memory is not valid." << std::endl;
+        // std::cerr << "[SUB] Shared memory is not valid." << std::endl;
         munmap(m_ptr, m_size);
         m_ptr = nullptr;
         return false;
     }
     m_size = PTR(m_ptr)->size;
-    std::cout << "[SUB] Shared memory mapped: " << m_ptr << std::endl;
+    // std::cout << "[SUB] Shared memory mapped: " << m_ptr << std::endl;
     return true;
 }
 
 void SharedSubscriberNode::detachSharedMem() noexcept
 {
-    std::cout << "[SUB] Detaching shared memory..." << std::endl;
+    // std::cout << "[SUB] Detaching shared memory..." << std::endl;
     if (m_ptr != nullptr) {
         munmap(m_ptr, m_size);
         m_ptr = nullptr;
         m_size = 0;
-        std::cout << "[SUB] Shared memory detached." << std::endl;
+        // std::cout << "[SUB] Shared memory detached." << std::endl;
     }
 }
 

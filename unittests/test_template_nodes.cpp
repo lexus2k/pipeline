@@ -9,29 +9,29 @@ using namespace lexus2k::pipeline;
 class PacketA : public IPacket {
 public:
     PacketA() : data(0) {}
-    PacketA(int value) : data(value) {}
+    PacketA(size_t value) : data(value) {}
 
     size_t serializeTo(void* ptr, size_t maxSize) noexcept override {
-        if (maxSize < sizeof(int)) {
+        if (maxSize < sizeof(size_t)) {
             return -1; // Not enough space
         }
-        *(int *)ptr = data;
-        return sizeof(int);
+        *(size_t *)ptr = data;
+        return sizeof(size_t);
     }
 
     size_t deserializeFrom(const void* ptr, size_t size) noexcept override {
-        if (size < sizeof(int)) {
+        if (size < sizeof(size_t)) {
             return -1;
         }
-        data = *(int *)ptr;
-        return sizeof(int);
+        data = *(size_t *)ptr;
+        return sizeof(size_t);
     }
 
-    int getData() const {
+    size_t getData() const {
         return data;
     }
 private:
-    int data; // Example data member
+    size_t data; // Example data member
 };
 
 class PacketB : public IPacket {
@@ -139,7 +139,7 @@ TEST_F(TemplateNodeTest, InvalidPacketTypeTest) {
 
 TEST_F(TemplateNodeTest, SharedMemoryNodeTest) {
     auto publisher = pipeline;
-    auto& publisherNode = *publisher->addNode<SharedPublisherNode>("shared");
+    auto& publisherNode = *publisher->addNode<SharedPublisherNode>("shared", 512, 8);
     auto &input = publisherNode.addChannel("channel1");
 
     auto subscriber = std::make_shared<Pipeline>();
@@ -154,7 +154,7 @@ TEST_F(TemplateNodeTest, SharedMemoryNodeTest) {
             return false;
         }
         consumedSum += packetA->getData();
-        std::cout << "Packet processed by consumer" << std::endl;
+        // std::cout << "Packet processed by consumer" << std::endl;
         return true;
     });
     consumer.addInput("input");
@@ -164,11 +164,52 @@ TEST_F(TemplateNodeTest, SharedMemoryNodeTest) {
 
     subscriber->start();
     publisher->start();
-    for (int i = 5; i < 20; ++i) {
+    for (int i = 1; i < 1000; ++i) {
         auto packet = std::make_shared<PacketA>(i);
-        std::cout << "Pushing packet with data: " << i << std::endl;
+        // std::cout << "Pushing packet with data: " << i << std::endl;
         input.pushPacket(packet, 200);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT_EQ(consumedSum, 4950); // Sum of numbers from 5 to 99
+    EXPECT_EQ(consumedSum, 499500); // Sum of first 1000 numbers
+}
+
+TEST_F(TemplateNodeTest, SharedMemoryPerformanceTest) {
+    auto publisher = pipeline;
+    const size_t sharedMemorySize = 2048;
+    auto& publisherNode = *publisher->addNode<SharedPublisherNode>("shared",
+                                sharedMemorySize, std::min<size_t>((size_t)64, sharedMemorySize / sizeof(size_t)));
+    auto &input = publisherNode.addChannel("channel1");
+
+    auto subscriber = std::make_shared<Pipeline>();
+    auto& subscriberNode = *subscriber->addNode<SharedSubscriberNodeT<PacketA>>("shared");
+    subscriberNode.addOutput("channel1");
+
+    uint64_t consumedPackets = 0;
+    auto &consumer = *pipeline->addNode([&consumedPackets](std::shared_ptr<IPacket> packet, IPad& pad) -> bool {
+        consumedPackets++;
+        return true;
+    });
+    consumer.addInput("input");
+
+    // Connect nodes using pad template method,
+    pipeline->connect(subscriberNode["channel1"], consumer["input"]);
+
+    subscriber->start();
+    publisher->start();
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    // Using high resolution steady clock for better accuracy
+    auto startTs = std::chrono::steady_clock::now();
+    const uint64_t packetCount = 300000;
+    for (uint64_t i = 0; i < packetCount; ++i) {
+        auto packet = std::make_shared<PacketA>(i);
+        // std::cout << "Pushing packet with data: " << i << std::endl;
+        EXPECT_EQ(input.pushPacket(packet, 200), true);
+    }
+    auto endTs = std::chrono::steady_clock::now();
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    EXPECT_EQ(consumedPackets, packetCount); // All packets should be consumed
+    auto calculatedPeformance = (consumedPackets * 1000) / std::chrono::duration_cast<std::chrono::milliseconds>(endTs - startTs).count();
+    std::cout << "Packets per second through single shared memory block: "
+              << calculatedPeformance << " packets/s" << std::endl;
+    EXPECT_GE(calculatedPeformance, 200000);
 }
